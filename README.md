@@ -93,7 +93,8 @@ http://localhost:8501
 
 ## 📂 Project Structure
 
-![Project Structure](image.png)
+<img width="165" height="616" alt="image" src="https://github.com/user-attachments/assets/cbd92982-873e-4964-a60c-3e739982a7bc" />
+
 
 
 
