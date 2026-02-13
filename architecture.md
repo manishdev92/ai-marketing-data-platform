@@ -5,9 +5,6 @@
 
 ---
 
-# 📘 2️⃣ architecture.md
-
-```markdown
 # System Architecture
 
 ## 1. Ingestion Layer

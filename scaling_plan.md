@@ -1,9 +1,3 @@
-
----
-
-# 📘 4️⃣ scaling_plan.md
-
-```markdown
 # Scaling Plan
 
 ## 1. API Scaling

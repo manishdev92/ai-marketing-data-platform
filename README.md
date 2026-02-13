@@ -92,13 +92,8 @@ http://localhost:8501
 ```
 
 ## 📂 Project Structure
-src/
- ├── api/
- ├── db/
- ├── models/
- ├── pipeline/
- ├── ui/
- └── utils/
+
+image.png
 
 
 
