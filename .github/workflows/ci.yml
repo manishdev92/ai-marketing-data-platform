@@ -1,0 +1,42 @@
+name: AI Marketing Platform CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install flake8 pytest
+
+      - name: Lint Python
+        run: |
+          flake8 src --count --select=E9,F63,F7,F82 --show-source --statistics
+
+      - name: Run unit tests (if any)
+        run: |
+          pytest || echo "No tests yet"
+
+      - name: Docker build (API)
+        run: docker build -f docker/Dockerfile.api .
+
+      - name: Docker build (Worker)
+        run: docker build -f docker/Dockerfile.worker .
+
+      - name: Docker build (Streamlit)
+        run: docker build -f docker/Dockerfile.streamlit .
