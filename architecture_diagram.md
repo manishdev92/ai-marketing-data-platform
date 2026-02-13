@@ -1,3 +1,6 @@
+# Architecture Diagram
+
+```mermaid
 flowchart LR
 
   %% Clients
