@@ -93,7 +93,7 @@ http://localhost:8501
 
 ## 📂 Project Structure
 
-image.png
+![Project Structure](image.png)
 
 
 
