@@ -1,0 +1,14 @@
+fastapi==0.95.2
+pydantic==1.10.13
+uvicorn==0.22.0
+pymongo
+redis
+neo4j
+pymilvus
+sentence-transformers
+torch
+python-dotenv
+sqlite-utils
+streamlit==1.41.1
+requests==2.32.3
+

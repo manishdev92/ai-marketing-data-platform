@@ -1,0 +1,194 @@
+version: "3.9"
+
+services:
+
+  mongodb:
+    image: mongo:7
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+  neo4j:
+    image: neo4j:5
+    container_name: neo4j
+    environment:
+      - NEO4J_AUTH=neo4j/password
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - neo4j_data:/data
+
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.5
+    container_name: milvus-etcd
+    environment:
+      - ETCD_AUTO_COMPACTION_MODE=revision
+      - ETCD_AUTO_COMPACTION_RETENTION=1000
+    command: etcd -advertise-client-urls=http://etcd:2379 -listen-client-urls=http://0.0.0.0:2379
+    ports:
+      - "2379:2379"
+
+  minio:
+    image: minio/minio:latest
+    container_name: milvus-minio
+    environment:
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    command: minio server /data
+    ports:
+      - "9000:9000"
+    volumes:
+      - minio_data:/data
+
+  milvus:
+    image: milvusdb/milvus:v2.3.9
+    container_name: milvus
+    command: ["milvus", "run", "standalone"]
+    environment:
+      ETCD_ENDPOINTS: etcd:2379
+      MINIO_ADDRESS: minio:9000
+    ports:
+      - "19530:19530"
+      - "9091:9091"
+    depends_on:
+      - etcd
+      - minio
+
+  # api:
+  #   build:
+  #     context: .
+  #     dockerfile: docker/Dockerfile.api
+  #   container_name: fastapi-app
+  #   ports:
+  #     - "8000:8000"
+  #   depends_on:
+  #     - mongodb
+  #     - redis
+  #     - neo4j
+  #     - milvus
+  #   environment:
+  #     MONGO_URI: mongodb://mongodb:27017
+  #     REDIS_HOST: redis
+  #     NEO4J_URI: bolt://neo4j:7687
+  #     NEO4J_USER: neo4j
+  #     NEO4J_PASSWORD: password
+  #     MILVUS_HOST: milvus
+  #     MILVUS_PORT: 19530
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    container_name: fastapi-app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mongodb
+      - redis
+      - neo4j
+      - milvus
+    environment:
+      MONGO_URI: mongodb://mongodb:27017
+      REDIS_HOST: redis
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: password
+      MILVUS_HOST: milvus
+      MILVUS_PORT: 19530
+      SQLITE_DB_PATH: /app/data/marketing.db
+    volumes:
+      - sqlite_data:/app/data   
+
+  # worker:
+  #   build:
+  #     context: .
+  #     dockerfile: docker/Dockerfile.worker
+  #   container_name: pipeline-worker
+  #   depends_on:
+  #     - mongodb
+  #     - redis
+  #     - neo4j
+  #     - milvus
+  #   environment:
+  #     MONGO_URI: mongodb://mongodb:27017
+  #     REDIS_HOST: redis
+  #     NEO4J_URI: bolt://neo4j:7687
+  #     NEO4J_USER: neo4j
+  #     NEO4J_PASSWORD: password
+  #     MILVUS_HOST: milvus
+  #     MILVUS_PORT: 19530
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.worker
+    container_name: pipeline-worker
+    depends_on:
+      - mongodb
+      - redis
+      - neo4j
+      - milvus
+    environment:
+      MONGO_URI: mongodb://mongodb:27017
+      REDIS_HOST: redis
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: password
+      MILVUS_HOST: milvus
+      MILVUS_PORT: 19530
+      SQLITE_DB_PATH: /app/data/marketing.db
+    volumes:
+      - sqlite_data:/app/data   
+
+  streamlit:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.streamlit
+    container_name: streamlit-ui
+    ports:
+      - "8501:8501"
+    depends_on:
+      - api
+    environment:
+      # optional, but nice for consistent behavior
+      PYTHONPATH: /app
+
+  orchestrator:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.worker   # reuse same image
+    container_name: pipeline-orchestrator
+    depends_on:
+      - redis
+      - mongodb
+      - neo4j
+      - milvus
+    environment:
+      MONGO_URI: mongodb://mongodb:27017
+      REDIS_URL: redis://redis:6379/0
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: password
+      MILVUS_HOST: milvus
+      MILVUS_PORT: 19530
+      SQLITE_DB_PATH: /app/data/marketing.db
+    volumes:
+      - sqlite_data:/app/data
+    command: ["python", "-u", "src/pipeline/orchestrator.py"]
+    
+    
+
+volumes:
+  mongo_data:
+  neo4j_data:
+  minio_data:
+  sqlite_data:
